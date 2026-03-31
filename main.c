@@ -1,49 +1,99 @@
 #include "header.h"
 
-struct rtt_node *create_new_rtt_node(struct packet_data *pd, struct icmphdr *icmph){
+bool pingloop = true;
+bool send_packet = true;
+
+void handler(int signum)
+{
+    if (signum == SIGINT)
+    {
+        pingloop = false;
+    }
+    else if (signum == SIGALRM)
+    {
+        send_packet = true;
+    }
+}
+
+struct rtt_node *create_new_rtt_node(struct packet_data *pd, void *buffer)
+{
     struct rtt_node *head = pd->rtt_head;
     struct rtt_node *new_elemt;
     struct timeval *t_packet_send;
     struct timeval t_packet_revd;
-    struct timeval *packet_rtt;
 
-    t_packet_send = ((struct timeval *)get_icmp_header(icmph))
-    if (gettimeofday(&t_packet_revd, NULL) == -1){
+    t_packet_send = get_sent_time(buffer);
+    if (gettimeofday(&t_packet_revd, NULL) == -1)
+    {
         printf("Error: Could not get current time.\n");
         return NULL;
     }
 
-    timersub(&t_packet_revd, t_packet_send, &packet_rtt);
-
-    new_elemt = (rtt_node *)malloc(sizeof(rtt_node));
-    if (!new_elemt){
+    new_elemt = (struct rtt_node *)malloc(sizeof(struct rtt_node));
+    if (!new_elemt)
+    {
         return NULL;
     }
 
+    timersub(&t_packet_revd, t_packet_send, &new_elemt->rtt);
+
     new_elemt->next = NULL;
-    if (head != NULL){
-        while (head->next != NULL){
-            head = head->next;
-        }
-        head->next = new_elemt;
+    if (head != NULL)
+    {
+        pd->rtt_tail->next = new_elemt;
+        pd->rtt_tail = new_elemt;
     }
-    else {
+    else
+    {
         pd->rtt_head = new_elemt;
+        pd->rtt_tail = new_elemt;
     }
-    pd->rtt_tail = head;
 }
 
-void clean_rtts_list(struct packet_data *pd){
-    struct rtt_node *head;
-    struct rtt_node *tmp;
-
-    tmp = head;
-
-    while (head != NULL){
-        tmp = head;
-        head = head->next;
-        free(tmp);
+void clean_rtts_list(struct packet_data *pd)
+{
+    struct rtt_node *current = pd->rtt_head;
+    while (current != NULL)
+    {
+        struct rtt_node *next = current->next;
+        free(current);
+        current = next;
     }
+    pd->rtt_head = NULL;
+    pd->rtt_tail = NULL;
+}
+
+static inline struct icmphdr *get_icmp_header_format(void *buffer)
+{
+    struct iphdr *ip = (struct iphdr *)buffer;
+    return (struct icmphdr *)((uint8_t *)buffer + (ip->ihl * 4));
+}
+
+static inline struct timeval *get_sent_time(void *buffer)
+{
+    return (struct timeval *)((uint8_t *)buffer + IP_HDR_SIZE + ICMP_HDR_SIZE);
+}
+
+void print_rtts(struct packet_data *pd)
+{
+    struct rtt_node *head = pd->rtt_head;
+    int i = 1;
+
+    while (head != NULL)
+    {
+        printf("RTT for packet %d: %ld.%06ld seconds\n", i, head->rtt.tv_sec, head->rtt.tv_usec);
+        head = head->next;
+        i++;
+    }
+}
+
+struct rtt_node *get_last_rtt_node(struct packet_data *pd)
+{
+    if (pd->rtt_tail != NULL)
+    {
+        return pd->rtt_tail;
+    }
+    return NULL;
 }
 
 static unsigned short checksum(unsigned short *ptr, int length)
@@ -152,12 +202,6 @@ int init_socket(int *socket_fd, struct socket_info *si, char *host, int ttl)
     return (0);
 }
 
-static inline struct icmphdr *get_icmp_header(void *buffer)
-{
-    struct iphdr *ip = (struct iphdr *)buffer;
-    return (struct icmphdr *)((uint8_t *)buffer + (ip->ihl * 4));
-}
-
 static inline void *skip_ip_header(void *buffer)
 {
     return (void *)((uint8_t *)buffer + IP_HDR_SIZE);
@@ -165,7 +209,7 @@ static inline void *skip_ip_header(void *buffer)
 
 int filter_icmp_reply(uint8_t *buffer)
 {
-    struct icmphdr *hdr_rep = get_icmp_header(buffer);
+    struct icmphdr *hdr_rep = get_icmp_header_format(buffer);
 
     if (hdr_rep->type != ICMP_ECHOREPLY)
     {
@@ -176,18 +220,33 @@ int filter_icmp_reply(uint8_t *buffer)
     return ntohs(hdr_rep->un.echo.id) == (getpid() & 0xFFFF);
 }
 
-void print_ping_result(void *buffer, size_t nbytes)
+void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd)
 {
     char ip_str[INET_ADDRESS_LENGTH];
     struct iphdr *ip_header;
     struct icmphdr *icmp_header;
+    struct rtt_node *last_rtt_node;
+    unsigned int seq_num;
+    double time_ms;
 
+    last_rtt_node = get_last_rtt_node(pd);
     ip_header = (struct iphdr *)buffer;
     icmp_header = skip_ip_header(buffer);
 
     inet_ntop(AF_INET, &ip_header->saddr, ip_str, INET_ADDRESS_LENGTH);
-    printf("Received ICMP echo reply from %s: bytes=%zu, ttl=%d\n",
-           ip_str, nbytes - IP_HDR_SIZE, ip_header->ttl);
+    seq_num = ntohs(icmp_header->un.echo.sequence);
+
+    if (last_rtt_node)
+    {
+        time_ms = last_rtt_node->rtt.tv_sec * 1000.0 + last_rtt_node->rtt.tv_usec / 1000.0;
+    }
+    else
+    {
+        time_ms = 0.0;
+    }
+
+    printf("%zu bytes from %s (%s): icmp_seq=%u ttl=%d time=%.1f ms\n",
+           nbytes - IP_HDR_SIZE, ip_str, ip_str, seq_num, ip_header->ttl, time_ms);
 }
 
 int receive_icmp_reply(int socket_fd, struct packet_data *pd)
@@ -209,8 +268,14 @@ int receive_icmp_reply(int socket_fd, struct packet_data *pd)
         if (filter_icmp_reply(buff))
         {
             pd->seccesfully_received = pd->seccesfully_received + 1;
-            print_ping_result(buff, nb_bytes);
-            break;
+            if (create_new_rtt_node(pd, buff) == NULL)
+            {
+                printf("Error: Could not create new RTT node.\n");
+                return -1;
+            }
+            print_ping_result(buff, nb_bytes, pd);
+            // print_rtts(pd);
+            // print_last_rtt(pd);
         }
     }
     if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -224,21 +289,39 @@ int receive_icmp_reply(int socket_fd, struct packet_data *pd)
 int main(int argc, char **argv)
 {
     struct socket_info si;
+    struct packet_data pd = {0};
     int socket_file_descriptor;
 
     if (argc < 2)
     {
-        printf("Error: You need to insert the host.\n");
+        print_help();
         return (1);
     }
-    init_socket(&socket_file_descriptor, &si, argv[1], IP_TTL_VALUE);
-    int ret = send_icmp_echo_request(socket_file_descriptor, &si, 1);
-    if (ret == -1)
+
+    signal(SIGINT, handler);
+    signal(SIGALRM, handler);
+    if (init_socket(&socket_file_descriptor, &si, argv[1], IP_TTL_VALUE) == -1)
     {
-        printf("Error: Could not send ICMP echo request.\n");
-        close(socket_file_descriptor);
+        printf("Error: Could not initialize socket.\n");
         return (1);
     }
-    receive_icmp_reply(socket_file_descriptor);
+    print_start_info(&si);
+    while (pingloop)
+    {
+        if (send_packet)
+        {
+            int ret = send_icmp_echo_request(socket_file_descriptor, &si, pd.sequence_number);
+            if (ret == -1)
+            {
+                printf("Error: Could not send ICMP echo request.\n");
+                close(socket_file_descriptor);
+                return (1);
+            }
+            pd.sequence_number++;
+            send_packet = false;
+            alarm(1);
+        }
+        receive_icmp_reply(socket_file_descriptor, &pd);
+    }
     return (0);
 }

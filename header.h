@@ -11,6 +11,8 @@
 #include <netdb.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <signal.h>
+#include <stdbool.h>
 
 #define IP_HDR_SIZE (sizeof(struct iphdr))
 #define ICMP_HDR_SIZE (sizeof(struct icmphdr))
@@ -41,5 +43,10 @@ struct packet_data {
     struct rtt_node *rtt_head;
     struct rtt_node *rtt_tail;
 };
+
+void print_help();
+void print_start_info(const struct socket_info *si);
+static inline struct icmphdr *get_icmp_header_format(void *buffer);
+static inline struct timeval *get_sent_time(void *buffer);
 
 #endif
