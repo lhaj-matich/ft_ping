@@ -2,7 +2,9 @@
 
 double calc_packet_loss(struct packet_data *pd)
 {
-	return (double)(pd->sequence_number - pd->seccesfully_received) / pd->sequence_number * 100;
+	if (pd->sequence_number <= 0)
+		return (0.0);
+	return (double)(pd->sequence_number - pd->seccesfully_received) / pd->sequence_number * 100.0;
 }
 
 float convert_time_to_ms(struct timeval *time)
@@ -138,14 +140,19 @@ struct ft_icmp_hdr *get_icmp_header_format(void *buffer)
 
 struct timeval *get_sent_time(void *buffer)
 {
-    struct ft_icmp_hdr *icmp = get_icmp_header_format(buffer);
-    return (struct timeval *)((uint8_t *)icmp + ICMP_HDR_SIZE);
+    uint8_t *icmp_start = (uint8_t *)buffer;
+    struct ft_ipv4_hdr *ip = (struct ft_ipv4_hdr *)buffer;
+    unsigned int ip_header_len = (ip->ver_ihl & 0x0F) * 4;
+
+    icmp_start += ip_header_len;
+
+    return (struct timeval *)(icmp_start + ICMP_HDR_SIZE);
 }
 
 void *skip_ip_header(void *buffer)
 {
     struct ft_ipv4_hdr *ip = (struct ft_ipv4_hdr *)buffer;
-    unsigned int ihl = ip->ver_ihl & 0x0Fu;
+    unsigned int ip_header_len = (ip->ver_ihl & 0x0F) * 4;
 
-    return (void *)((uint8_t *)buffer + ihl * 4);
+    return ((uint8_t *)buffer + ip_header_len);
 }

@@ -10,7 +10,7 @@ struct rtt_node *create_new_rtt_node(struct packet_data *pd, void *buffer)
     t_packet_send = get_sent_time(buffer);
     if (gettimeofday(&t_packet_revd, NULL) == -1)
     {
-        printf("Error: Could not get current time.\n");
+        fprintf(stderr, "ping: cannot get current time\n");
         return NULL;
     }
 

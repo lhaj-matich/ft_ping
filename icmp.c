@@ -29,7 +29,7 @@ static int fill_icmp_header(u_int8_t *buffer, int sequence_number)
 
     if (gettimeofday(time_sent, NULL) == -1)
     {
-        printf("ping: cannot get current time\n");
+        fprintf(stderr, "ping: cannot get current time\n");
         return -1;
     }
 
@@ -66,7 +66,7 @@ int prepare_socket_address(struct socket_info *si)
 
     if (inet_ntop(AF_INET, &si->remote_address.sin_addr, si->str_sin_addr, INET_ADDRESS_LENGTH) == NULL)
     {
-        printf("ping: cannot convert host address to string\n");
+        fprintf(stderr, "ping: cannot convert host address to string\n");
         return -1;
     }
     return 0;
@@ -80,13 +80,13 @@ int init_socket(int *socket_fd, struct socket_info *si, char *host, int ttl)
 
     if ((*socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1)
     {
-        printf("ping: cannot create socket\n");
+        fprintf(stderr, "ping: cannot create socket\n");
         return -1;
     }
 
     if (setsockopt(*socket_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) == -1)
     {
-        printf("ping: cannot set socket options\n");
+        fprintf(stderr, "ping: cannot set socket options\n");
         close(*socket_fd);
         return -1;
     }
@@ -107,26 +107,30 @@ int receive_icmp_reply(int socket_fd, struct packet_data *pd, struct ping_option
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    nb_bytes = recvmsg(socket_fd, &msg, MSG_DONTWAIT);
-    if (nb_bytes > 0)
+    for (;;)
     {
+        nb_bytes = recvmsg(socket_fd, &msg, MSG_DONTWAIT);
+        if (nb_bytes < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return (0);
+            perror("recvmsg");
+            return (-1);
+        }
+        if (nb_bytes == 0)
+            return (0);
         if (filter_icmp_reply(buff))
         {
+            pd->got_echo_reply = true;
             pd->seccesfully_received = pd->seccesfully_received + 1;
             if (create_new_rtt_node(pd, buff) == NULL)
             {
-                printf("ping: cannot create new RTT node\n");
+                fprintf(stderr, "ping: cannot create new RTT node\n");
                 return -1;
             }
             print_ping_result(buff, nb_bytes, pd, options);
         }
     }
-    if (errno != EAGAIN && errno != EWOULDBLOCK)
-    {
-        perror("recvmsg");
-        return -1;
-    }
-    return (-1);
 }
 
 int send_icmp_echo_request(int socket_fd, struct socket_info *si, int sequence_number)
@@ -137,7 +141,7 @@ int send_icmp_echo_request(int socket_fd, struct socket_info *si, int sequence_n
 
     if (sendto(socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&si->remote_address, sizeof(si->remote_address)) == -1)
     {
-        printf("ping: cannot send ICMP echo request\n");
+        fprintf(stderr, "ping: cannot send ICMP echo request\n");
         return -1;
     }
     return (0);

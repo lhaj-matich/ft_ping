@@ -102,6 +102,8 @@ struct rtt_node {
 struct packet_data {
     int sequence_number;
     int seccesfully_received;
+    bool awaiting_echo_reply;
+    bool got_echo_reply;
     struct timeval *min;
     struct timeval *max;
     struct timeval avg;
@@ -116,6 +118,7 @@ int parse_args(int argc, char **argv, struct ping_options *options, char **hostn
 void print_start_info(const struct socket_info *si);
 void print_end_info(struct socket_info *si, struct packet_data *pd);
 void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, struct ping_options *options);
+void print_request_timeout(unsigned seq, const struct ping_options *options);
 
 double calc_packet_loss(struct packet_data *pd);
 float convert_time_to_ms(struct timeval *time);

@@ -14,32 +14,34 @@ void print_start_info(const struct socket_info *si)
     printf("PING %s (%s): %d bytes of data.\n", si->host, si->str_sin_addr, ICMP_PAYLOAD_SIZE);
 }
 
+void print_request_timeout(unsigned seq, const struct ping_options *options)
+{
+    if (options->quiet)
+        return;
+    printf("Request timeout for icmp_seq %u\n", seq);
+}
+
 void print_end_info(struct socket_info *si, struct packet_data *pd)
 {
-    if (pd->seccesfully_received) {
+    printf("\n--- %s ping statistics ---\n", si->host);
+    if (pd->sequence_number > 0)
+        printf("%d packets transmitted, %d packets received, %.1f%% packet loss\n",
+               pd->sequence_number, pd->seccesfully_received, calc_packet_loss(pd));
+    else
+        printf("0 packets transmitted, 0 packets received, 0.0%% packet loss\n");
+    if (pd->seccesfully_received > 0)
+    {
         update_min_max_avg(pd);
         calculate_stddev(pd);
-        printf("\n--- %s ping statistics ---\n", si->host);
-        printf("%d packets transmitted, %d packets received, %.1f%% packet loss\n", pd->sequence_number, pd->seccesfully_received, calc_packet_loss(pd));
-        if (pd->seccesfully_received) {
-            double min_ms = pd->min->tv_sec * 1000.0 + pd->min->tv_usec / 1000.0;
-            double avg_ms = pd->avg.tv_sec * 1000.0 + pd->avg.tv_usec / 1000.0;
-            double max_ms = pd->max->tv_sec * 1000.0 + pd->max->tv_usec / 1000.0;
-            double std_dev_ms = pd->std_dev;
-            printf("round-trip min/avg/max/std dev = ");
-            printf("%.3f ms/", min_ms);
-            printf("%.3f ms/", avg_ms);
-            printf("%.3f ms/", max_ms);
-            printf("%.3f ms\n", std_dev_ms);
-        }
-    }
-    else {
-        printf("No packets received\n");
+        double min_ms = pd->min->tv_sec * 1000.0 + pd->min->tv_usec / 1000.0;
+        double avg_ms = pd->avg.tv_sec * 1000.0 + pd->avg.tv_usec / 1000.0;
+        double max_ms = pd->max->tv_sec * 1000.0 + pd->max->tv_usec / 1000.0;
+        double std_dev_ms = pd->std_dev;
         printf("round-trip min/avg/max/std dev = ");
-        printf("0.000 ms/");
-        printf("0.000 ms/");
-        printf("0.000 ms/");
-        printf("0.000 ms\n");
+        printf("%.3f ms/", min_ms);
+        printf("%.3f ms/", avg_ms);
+        printf("%.3f ms/", max_ms);
+        printf("%.3f ms\n", std_dev_ms);
     }
 }
 
@@ -68,8 +70,10 @@ void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, stru
                nbytes - IP_HDR_SIZE, ip_str, seq_num, ip_header->ttl, time_ms);
     }
     else if (icmp_header->type != ICMP_ECHOREPLY) {
-        printf("Something went wrong\n");
         printf("%ld bytes from %s: %s\n",
                nbytes - IP_HDR_SIZE, ip_str, get_icmp_error_message(icmp_header->type, icmp_header->code));
+        if (options->verbose){
+            fprintf(stderr, "ICMP: Type: %d, Code: %d\n", icmp_header->type, icmp_header->code);
+        }
     }
 }

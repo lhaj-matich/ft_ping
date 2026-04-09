@@ -1,17 +1,17 @@
 #include "header.h"
 
-bool pingloop = true;
-bool send_packet = true;
+volatile sig_atomic_t pingloop = 1;
+volatile sig_atomic_t send_packet = 1;
 
 void handler(int signum)
 {
     if (signum == SIGINT)
     {
-        pingloop = false;
+        pingloop = 0;
     }
     else if (signum == SIGALRM)
     {
-        send_packet = true;
+        send_packet = 1;
     }
 }
 
@@ -49,6 +49,8 @@ int main(int argc, char **argv)
     {
         if (send_packet)
         {
+            if (pd.sequence_number > 0 && pd.awaiting_echo_reply && !pd.got_echo_reply)
+                print_request_timeout((unsigned)(pd.sequence_number - 1), &options);
             int ret = send_icmp_echo_request(socket_file_descriptor, &si, pd.sequence_number);
             if (ret == -1)
             {
@@ -56,11 +58,16 @@ int main(int argc, char **argv)
                 close(socket_file_descriptor);
                 return (1);
             }
+            pd.awaiting_echo_reply = true;
+            pd.got_echo_reply = false;
             pd.sequence_number++;
-            send_packet = false;
+            send_packet = 0;
             alarm(1);
         }
         receive_icmp_reply(socket_file_descriptor, &pd, &options);
+        if (!pingloop)
+            break;
+        usleep(5000);
     }
     print_end_info(&si, &pd);
     clean_rtts_list(&pd);
