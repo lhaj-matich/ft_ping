@@ -82,7 +82,7 @@ struct packet_data {
 
 void print_help(void);
 int parse_args(int argc, char **argv, struct ping_options *options, char **hostname_out);
-void print_start_info(const struct socket_info *si);
+void print_start_info(const struct socket_info *si, const struct ping_options *options);
 void print_end_info(struct socket_info *si, struct packet_data *pd);
 void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, struct ping_options *options);
 void print_request_timeout(unsigned seq, const struct ping_options *options);

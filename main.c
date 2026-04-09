@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     signal(SIGALRM, handler);
     if (init_socket(&socket_file_descriptor, &si, target_host, IP_TTL_VALUE) == -1)
         return (1);
-    print_start_info(&si);
+    print_start_info(&si, &options);
     while (pingloop)
     {
         if (send_packet)

@@ -9,9 +9,15 @@ void print_help()
     printf("  -h, --help\t\tShow this help message and exit\n");
 }
 
-void print_start_info(const struct socket_info *si)
+void print_start_info(const struct socket_info *si, const struct ping_options *options)
 {
-    printf("PING %s (%s): %d bytes of data.\n", si->host, si->str_sin_addr, ICMP_PAYLOAD_SIZE);
+    unsigned id = (unsigned)(getpid() & 0xFFFF);
+
+    if (options->verbose)
+        printf("PING %s (%s): %d data bytes, id 0x%04x = %u\n",
+               si->host, si->str_sin_addr, ICMP_PAYLOAD_SIZE, id, id);
+    else
+        printf("PING %s (%s): %d bytes of data.\n", si->host, si->str_sin_addr, ICMP_PAYLOAD_SIZE);
 }
 
 void print_request_timeout(unsigned seq, const struct ping_options *options)
