@@ -41,6 +41,11 @@ struct ft_icmp_hdr
     uint16_t sequence;
 };
 
+struct ping_state {
+    volatile sig_atomic_t pingloop;
+    volatile sig_atomic_t send_packet;
+};
+
 #define IP_HDR_SIZE (sizeof(struct ft_ipv4_hdr))
 #define ICMP_HDR_SIZE (sizeof(struct ft_icmp_hdr))
 #define INET_ADDRESS_LENGTH 16

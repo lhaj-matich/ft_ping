@@ -59,7 +59,7 @@ int prepare_socket_address(struct socket_info *si)
     int ret = getaddrinfo(si->host, NULL, &hint, &temp);
     if (ret != 0)
     {
-        fprintf(stderr, "ping: cannot resolve %s: %s\n", si->host, gai_strerror(ret));
+        fprintf(stderr, "ping: unknown host\n");
         return -1;
     }
 

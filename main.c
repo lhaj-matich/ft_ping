@@ -1,17 +1,16 @@
 #include "header.h"
 
-volatile sig_atomic_t pingloop = 1;
-volatile sig_atomic_t send_packet = 1;
+struct ping_state ping_state = {1, 1};
 
 void handler(int signum)
 {
     if (signum == SIGINT)
     {
-        pingloop = 0;
+        ping_state.pingloop = 0;
     }
     else if (signum == SIGALRM)
     {
-        send_packet = 1;
+        ping_state.send_packet = 1;
     }
 }
 
@@ -45,9 +44,9 @@ int main(int argc, char **argv)
     if (init_socket(&socket_file_descriptor, &si, target_host, IP_TTL_VALUE) == -1)
         return (1);
     print_start_info(&si, &options);
-    while (pingloop)
+    while (ping_state.pingloop)
     {
-        if (send_packet)
+        if (ping_state.send_packet)
         {
             if (pd.sequence_number > 0 && pd.awaiting_echo_reply && !pd.got_echo_reply)
                 print_request_timeout((unsigned)(pd.sequence_number - 1), &options);
@@ -61,11 +60,11 @@ int main(int argc, char **argv)
             pd.awaiting_echo_reply = true;
             pd.got_echo_reply = false;
             pd.sequence_number++;
-            send_packet = 0;
+            ping_state.send_packet = 0;
             alarm(1);
         }
         receive_icmp_reply(socket_file_descriptor, &pd, &options);
-        if (!pingloop)
+        if (!ping_state.pingloop)
             break;
         usleep(5000);
     }
