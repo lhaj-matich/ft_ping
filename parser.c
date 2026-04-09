@@ -22,6 +22,7 @@ int parse_args(int argc, char **argv, struct ping_options *options, char **hostn
             continue;
         }
         if (!strcmp(argument, "-h") || !strcmp(argument, "--help")) options->help = true;
+        else if (!strcmp(argument, "-?")) options->help = true;
         else if (!strcmp(argument, "-q") || !strcmp(argument, "--quiet")) options->quiet = true;
         else if (!strcmp(argument, "-v") || !strcmp(argument, "--verbose")) options->verbose = true;
         else return (fprintf(stderr, "ft_ping: unknown option: %s\n", argument), 1);

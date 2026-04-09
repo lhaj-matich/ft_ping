@@ -12,39 +12,6 @@
 #include <netdb.h>
 #include <math.h>
 
-#ifdef __APPLE__
-#define ICMP_DEST_UNREACH               ICMP_UNREACH
-#define ICMP_NET_UNREACH                ICMP_UNREACH_NET
-#define ICMP_HOST_UNREACH               ICMP_UNREACH_HOST
-#define ICMP_PROT_UNREACH               ICMP_UNREACH_PROTOCOL
-#define ICMP_PORT_UNREACH               ICMP_UNREACH_PORT
-#define ICMP_FRAG_NEEDED                ICMP_UNREACH_NEEDFRAG
-#define ICMP_SR_FAILED                  ICMP_UNREACH_SRCFAIL
-#define ICMP_NET_UNKNOWN                ICMP_UNREACH_NET_UNKNOWN
-#define ICMP_HOST_UNKNOWN               ICMP_UNREACH_HOST_UNKNOWN
-#define ICMP_HOST_ISOLATED              ICMP_UNREACH_ISOLATED
-#define ICMP_NET_ANO                    ICMP_UNREACH_NET_PROHIB
-#define ICMP_HOST_ANO                   ICMP_UNREACH_HOST_PROHIB
-#define ICMP_NET_UNR_TOS                ICMP_UNREACH_TOSNET
-#define ICMP_HOST_UNR_TOS               ICMP_UNREACH_TOSHOST
-#define ICMP_PKT_FILTERED               ICMP_UNREACH_FILTER_PROHIB
-#define ICMP_PREC_VIOLATION             ICMP_UNREACH_HOST_PRECEDENCE
-#define ICMP_PREC_CUTOFF                ICMP_UNREACH_PRECEDENCE_CUTOFF
-#define ICMP_SOURCE_QUENCH              ICMP_SOURCEQUENCH
-#define ICMP_REDIR_NET                  ICMP_REDIRECT_NET
-#define ICMP_REDIR_HOST                 ICMP_REDIRECT_HOST
-#define ICMP_REDIR_NETTOS               ICMP_REDIRECT_TOSNET
-#define ICMP_REDIR_HOSTTOS              ICMP_REDIRECT_TOSHOST
-#define ICMP_TIME_EXCEEDED              ICMP_TIMXCEED
-#define ICMP_TTL_EXPIRED                ICMP_TIMXCEED_INTRANS
-#define ICMP_REASSEMBLY_TIME_EXCEEDED   ICMP_TIMXCEED_REASS
-#define ICMP_PARAMETER_PROBLEM          ICMP_PARAMPROB
-#define ICMP_BAD_OPTION                 ICMP_PARAMPROB_ERRATPTR
-#define ICMP_BAD_LENGTH                 ICMP_PARAMPROB_LENGTH
-#define ICMP_BAD_VALUE                  ICMP_PARAMPROB_OPTABSENT
-#endif
-
-
 #include <errno.h>
 #include <sys/time.h>
 #include <signal.h>

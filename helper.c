@@ -19,112 +19,84 @@ bool is_user_root(void)
 
 char *get_icmp_error_message(int type, int code) {
     switch (type) {
+
     case ICMP_DEST_UNREACH:
         switch(code) {
         case ICMP_NET_UNREACH:
             return "Destination Net Unreachable";
-            break;
         case ICMP_HOST_UNREACH:
             return "Destination Host Unreachable";
-            break;
         case ICMP_PROT_UNREACH:
             return "Destination Protocol Unreachable";
-            break;
         case ICMP_PORT_UNREACH:
             return "Destination Port Unreachable";
-            break;
         case ICMP_FRAG_NEEDED:
             return "Frag needed";
-            break;
         case ICMP_SR_FAILED:
             return "Source Route Failed";
-            break;
         case ICMP_NET_UNKNOWN:
             return "Destination Net Unknown";
-            break;
         case ICMP_HOST_UNKNOWN:
             return "Destination Host Unknown";
-            break;
         case ICMP_HOST_ISOLATED:
             return "Source Host Isolated";
-            break;
         case ICMP_NET_ANO:
             return "Destination Net Prohibited";
-            break;
         case ICMP_HOST_ANO:
             return "Destination Host Prohibited";
-            break;
         case ICMP_NET_UNR_TOS:
-            return "Destination Net Unreachable for Type of Service";
-            break;
+            return "Destination Net Unreachable for TOS";
         case ICMP_HOST_UNR_TOS:
-            return "Destination Host Unreachable for Type of Service";
-            break;
+            return "Destination Host Unreachable for TOS";
         case ICMP_PKT_FILTERED:
             return "Packet filtered";
-            break;
         case ICMP_PREC_VIOLATION:
             return "Precedence Violation";
-            break;
         case ICMP_PREC_CUTOFF:
             return "Precedence Cutoff";
-            break;
         default:
             return "Dest Unreachable, Bad Code";
-            break;
         }
-        break;
-    case ICMP_SOURCE_QUENCH:
+
+    case ICMP_SOURCEQUENCH:
         return "Source Quench";
-        break;
+
     case ICMP_REDIRECT:
         switch(code) {
         case ICMP_REDIR_NET:
             return "Redirect Network";
-            break;
         case ICMP_REDIR_HOST:
             return "Redirect Host";
-            break;
         case ICMP_REDIR_NETTOS:
-            return "Redirect Type of Service and Network";
-            break;
+            return "Redirect TOS and Network";
         case ICMP_REDIR_HOSTTOS:
-            return "Redirect Type of Service and Host";
-            break;
+            return "Redirect TOS and Host";
         default:
             return "Redirect, Bad Code";
-            break;
         }
-        break;
-    case ICMP_TIME_EXCEEDED:
+
+    case ICMP_TIMXCEED:
         switch(code) {
-        case ICMP_TTL_EXPIRED:
+        case ICMP_TIMXCEED_INTRANS:
             return "TTL expired";
-            break;
-        case ICMP_REASSEMBLY_TIME_EXCEEDED:
+        case ICMP_TIMXCEED_REASS:
             return "Reassembly time exceeded";
-            break;
         default:
             return "Time exceeded, Bad Code";
-            break;
         }
-        break;
-    case ICMP_PARAMETER_PROBLEM:
+
+    case ICMP_PARAMETERPROB:
         switch(code) {
-        case ICMP_BAD_OPTION:
-            return "Bad option";
-            break;
-        case ICMP_BAD_LENGTH:
+        case 0:
+            return "Bad pointer";
+        case 1:
             return "Bad length";
-            break;
-        case ICMP_BAD_VALUE:
-            return "Bad value";
-            break;
+        case 2:
+            return "Required option absent";
         default:
             return "Parameter problem, Bad Code";
-            break;
         }
-        break;
+
     default:
         return "Unknown ICMP type";
     }
