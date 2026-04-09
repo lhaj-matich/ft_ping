@@ -51,18 +51,20 @@ int prepare_socket_address(struct socket_info *si)
     struct addrinfo hint;
     struct addrinfo *temp;
 
+    memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_INET;
-    hint.ai_socktype = SOCK_RAW;
-    hint.ai_protocol = IPPROTO_ICMP;
+    hint.ai_socktype = 0;
+    hint.ai_protocol = 0;
 
     int ret = getaddrinfo(si->host, NULL, &hint, &temp);
     if (ret != 0)
     {
-        printf("ping: cannot resolve %s: Unknown host\n", si->host);
+        fprintf(stderr, "ping: cannot resolve %s: %s\n", si->host, gai_strerror(ret));
         return -1;
     }
 
     si->remote_address = *(struct sockaddr_in *)temp->ai_addr;
+    freeaddrinfo(temp);
 
     if (inet_ntop(AF_INET, &si->remote_address.sin_addr, si->str_sin_addr, INET_ADDRESS_LENGTH) == NULL)
     {
