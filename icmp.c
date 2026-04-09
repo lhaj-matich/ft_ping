@@ -109,7 +109,7 @@ int receive_icmp_reply(int socket_fd, struct packet_data *pd, struct ping_option
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    for (;;)
+    while (1)
     {
         nb_bytes = recvmsg(socket_fd, &msg, MSG_DONTWAIT);
         if (nb_bytes < 0)
