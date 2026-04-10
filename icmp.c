@@ -22,6 +22,41 @@ static unsigned short checksum(unsigned short *ptr, int length)
     return (unsigned short)~sum;
 }
 
+static int icmp_error_references_our_echo(const uint8_t *buf, ssize_t len)
+{
+    unsigned outer_ihl;
+    unsigned inner_ihl;
+    const uint8_t *inner_ip;
+    const struct ft_icmp_hdr *outer_icmp;
+    const struct ft_icmp_hdr *inner_icmp;
+    const struct ft_ipv4_hdr *inner_iph;
+    uint8_t outer_type;
+
+    if (len < (ssize_t)sizeof(struct ft_ipv4_hdr))
+        return (0);
+    outer_ihl = (buf[0] & 0x0Fu) * 4u;
+    if (outer_ihl < sizeof(struct ft_ipv4_hdr) || len < (ssize_t)(outer_ihl + 8))
+        return (0);
+    outer_icmp = (const struct ft_icmp_hdr *)(buf + outer_ihl);
+    outer_type = outer_icmp->type;
+    if (outer_type != 3 && outer_type != 4 && outer_type != 5 && outer_type != 11
+        && outer_type != 12)
+        return (0);
+    inner_ip = buf + outer_ihl + 8;
+    if (len < (ssize_t)(outer_ihl + 8 + 20 + 8))
+        return (0);
+    inner_ihl = (inner_ip[0] & 0x0Fu) * 4u;
+    if (inner_ihl < 20u || len < (ssize_t)(outer_ihl + 8 + inner_ihl + 8))
+        return (0);
+    inner_iph = (const struct ft_ipv4_hdr *)inner_ip;
+    if (inner_iph->protocol != 1)
+        return (0);
+    inner_icmp = (const struct ft_icmp_hdr *)(inner_ip + inner_ihl);
+    if (inner_icmp->type != ICMP_ECHO)
+        return (0);
+    return (ntohs(inner_icmp->id) == (getpid() & 0xFFFF));
+}
+
 static int fill_icmp_header(u_int8_t *buffer, int sequence_number)
 {
     struct ft_icmp_hdr *icmp_header = (struct ft_icmp_hdr *)buffer;
@@ -130,6 +165,11 @@ int receive_icmp_reply(int socket_fd, struct packet_data *pd, struct ping_option
                 fprintf(stderr, "ping: cannot create new RTT node\n");
                 return -1;
             }
+            print_ping_result(buff, nb_bytes, pd, options);
+        }
+        else if (icmp_error_references_our_echo(buff, nb_bytes))
+        {
+            pd->got_echo_reply = true;
             print_ping_result(buff, nb_bytes, pd, options);
         }
     }
