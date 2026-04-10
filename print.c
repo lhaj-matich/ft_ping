@@ -61,8 +61,8 @@ void print_ip_header_info(struct ft_ipv4_hdr *ip)
 
     printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst\n");
     printf(" %d  %d  %02x %04x %04x   %d %04x  %02x  %02x %04x %s  %s\n",
-           ip->version,
-           ip->ihl,
+           ip->ver_ihl >> 4,
+           ip->ver_ihl & 0x0F,
            ip->tos,
            ntohs(ip->tot_len),
            ntohs(ip->id),
@@ -108,12 +108,12 @@ void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, stru
                    struct ft_ipv4_hdr *inner_ip_hdr = (struct ft_ipv4_hdr *)inner_ip;
                
                    printf("IP Hdr Dump:\n");
-                   dump_ip_header_hex(inner_ip, inner_ip_hdr->ihl * 4);
+                   dump_ip_header_hex(inner_ip, (inner_ip_hdr->ver_ihl & 0x0F) * 4);
                
                    print_ip_header_info(inner_ip_hdr);
                
                    struct ft_icmp_hdr *inner_icmp =
-                       (struct ft_icmp_hdr *)(inner_ip + (inner_ip_hdr->ihl * 4));
+                       (struct ft_icmp_hdr *)(inner_ip + ((inner_ip_hdr->ver_ihl & 0x0F) * 4));
                
                    printf("ICMP: type %d, code %d, size %zu, id 0x%04x, seq 0x%04x\n",
                           inner_icmp->type,
