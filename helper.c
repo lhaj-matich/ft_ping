@@ -128,3 +128,13 @@ void *skip_ip_header(void *buffer)
 
     return ((uint8_t *)buffer + ip_header_len);
 }
+
+void dump_ip_header_hex(const uint8_t *data, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        if (i % 2 == 0)
+            printf(" ");
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}

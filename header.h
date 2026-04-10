@@ -113,13 +113,8 @@ bool is_user_root(void);
 void calculate_stddev(struct packet_data *pd);
 void handler(int signum);
 
-static inline int timecmp(const struct timeval *a, const struct timeval *b)
-{
-    if (a->tv_sec != b->tv_sec)
-        return (a->tv_sec > b->tv_sec) - (a->tv_sec < b->tv_sec);
-    if (a->tv_usec != b->tv_usec)
-        return (a->tv_usec > b->tv_usec) - (a->tv_usec < b->tv_usec);
-    return 0;
-}
+void print_ip_header_info(struct ft_ipv4_hdr *ip);
+void dump_ip_header_hex(const uint8_t *data, size_t len);
+
 
 #endif

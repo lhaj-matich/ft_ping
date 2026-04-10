@@ -51,6 +51,30 @@ void print_end_info(struct socket_info *si, struct packet_data *pd)
     }
 }
 
+void print_ip_header_info(struct ft_ipv4_hdr *ip)
+{
+    char src[INET_ADDRESS_LENGTH];
+    char dst[INET_ADDRESS_LENGTH];
+
+    inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRESS_LENGTH);
+    inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRESS_LENGTH);
+
+    printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst\n");
+    printf(" %d  %d  %02x %04x %04x   %d %04x  %02x  %02x %04x %s  %s\n",
+           ip->version,
+           ip->ihl,
+           ip->tos,
+           ntohs(ip->tot_len),
+           ntohs(ip->id),
+           ntohs(ip->frag_off) >> 13,
+           ntohs(ip->frag_off) & 0x1FFF,
+           ip->ttl,
+           ip->protocol,
+           ntohs(ip->check),
+           src,
+           dst);
+}
+
 void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, struct ping_options *options)
 {
     char ip_str[INET_ADDRESS_LENGTH];
@@ -78,8 +102,25 @@ void print_ping_result(void *buffer, size_t nbytes, struct packet_data *pd, stru
     else if (icmp_header->type != ICMP_ECHOREPLY) {
         printf("%ld bytes from %s: %s\n",
                nbytes - IP_HDR_SIZE, ip_str, get_icmp_error_message(icmp_header->type, icmp_header->code));
-        if (options->verbose){
-            fprintf(stderr, "ICMP: Type: %d, Code: %d\n", icmp_header->type, icmp_header->code);
-        }
+               if (options->verbose)
+               {
+                   const uint8_t *inner_ip = (const uint8_t *)(icmp_header + 1);
+                   struct ft_ipv4_hdr *inner_ip_hdr = (struct ft_ipv4_hdr *)inner_ip;
+               
+                   printf("IP Hdr Dump:\n");
+                   dump_ip_header_hex(inner_ip, inner_ip_hdr->ihl * 4);
+               
+                   print_ip_header_info(inner_ip_hdr);
+               
+                   struct ft_icmp_hdr *inner_icmp =
+                       (struct ft_icmp_hdr *)(inner_ip + (inner_ip_hdr->ihl * 4));
+               
+                   printf("ICMP: type %d, code %d, size %zu, id 0x%04x, seq 0x%04x\n",
+                          inner_icmp->type,
+                          inner_icmp->code,
+                          nbytes,
+                          ntohs(inner_icmp->id),
+                          ntohs(inner_icmp->sequence));
+               }
     }
 }
