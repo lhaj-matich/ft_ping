@@ -50,11 +50,11 @@ void update_min_max_avg(struct packet_data *pd)
 
     while (current != NULL)
     {
-        if (timecmp(&current->rtt, pd->min) < 0)
+        if (timercmp(&current->rtt, pd->min, <))
         {
             pd->min = &current->rtt;
         }
-        if (timecmp(&current->rtt, pd->max) > 0)
+        if (timercmp(&current->rtt, pd->max, >))
         {
             pd->max = &current->rtt;
         }
